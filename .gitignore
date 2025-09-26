@@ -1,2 +1,4 @@
 # trusti
 .idea/
+.env
+vendor/
