@@ -122,6 +122,8 @@ class EmailWorker
                 continue;
             }
 
+            self::prettyPrint($result);
+
             switch ($result['event']) {
                 case 'delivered':
                     self::prettyPrint("Email ID {$email['id']} was DELIVERED!");

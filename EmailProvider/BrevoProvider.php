@@ -80,11 +80,13 @@ class BrevoProvider extends AbstractEmailProvider
     function processDeliveryStatusResponse(array $data, string $messageId): array
     {
         foreach (($data['events'] ?? []) as $event) {
-            return [
-                'success' => true,
-                'event' => $event['event'],
-                'reason' => $event['reason'] ?? 'no reason provided'
-            ];
+            if($event['event'] === 'delivered' || $event['event'] === 'blocked' || $event['event'] === 'hardBounces' || $event['event'] === 'softBounces') {
+                return [
+                    'success' => true,
+                    'event' => $event['event'],
+                    'reason' => $event['reason'] ?? 'no reason provided'
+                ];
+            }
         }
 
         return [
