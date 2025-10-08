@@ -2,11 +2,12 @@
 
 namespace Trusti\EmailProvider;
 
-class BrevoProvider extends AbstractEmailProvider
+class MockProvider extends AbstractEmailProvider
 {
+
     public function send(string $to, string $subject, string $body, ?string $from = null, ?string $idempotency_key = null): array
     {
-        $url = "https://api.brevo.com/v3/smtp/email";
+        $url = "http://localhost:8001";
 
         $data = [
             'sender' => [
@@ -17,7 +18,8 @@ class BrevoProvider extends AbstractEmailProvider
                 ['email' => $to]
             ],
             'subject' => $subject,
-            'textContent' => $body
+            'textContent' => $body,
+            'idempotency_key' => $idempotency_key
         ];
 
         $ch = curl_init();
@@ -44,15 +46,15 @@ class BrevoProvider extends AbstractEmailProvider
         return [
             'success' => $httpCode === 201,
             'message_id' => $responseArray['messageId'] ?? 'unknown',
-            'provider' => 'brevo',
+            'provider' => 'mock',
             'errors' => $responseArray['message'] ?? $responseArray['error'] ?? null,
             'http_code' => $httpCode,
         ];
     }
 
-    public function checkDeliveryStatus(string $messageId): array
+    public function checkDeliveryStatus(string $idempotencyKey): array
     {
-        $url = "https://api.brevo.com/v3/smtp/statistics/events/?messageId=" . urlencode($messageId);
+        $url = "http://localhost:8001?idempotency_key=" . urlencode($idempotencyKey);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -76,10 +78,10 @@ class BrevoProvider extends AbstractEmailProvider
 
         $data = json_decode($response, true);
 
-        return $this->processDeliveryStatusResponse($data, $messageId);
+        return $this->processDeliveryStatusResponse($data, $idempotencyKey);
     }
 
-    function processDeliveryStatusResponse(array $data, string $messageId): array
+    public function processDeliveryStatusResponse(array $data, string $messageId): array
     {
         foreach (($data['events'] ?? []) as $event) {
             if($event['event'] === 'delivered' || $event['event'] === 'blocked' || $event['event'] === 'hardBounces' || $event['event'] === 'softBounces') {
@@ -94,7 +96,7 @@ class BrevoProvider extends AbstractEmailProvider
         return [
             'success' => true,
             'event' => null,
-            'reason' => 'Brevo does not support delivery status checks via API',
+            'reason' => 'Mock does not support delivery status checks via API',
         ];
     }
 }

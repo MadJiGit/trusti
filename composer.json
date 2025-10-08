@@ -9,11 +9,12 @@
     "php-http/guzzle7-adapter": "^1.1",
     "railsware/mailtrap-php": "^3.7",
     "symfony/mime": "^7.3",
-    "ramsey/uuid": "^4.9"
+    "ramsey/uuid": "^4.9",
+    "ext-pdo": "*"
   },
   "autoload": {
     "psr-4": {
-      "Trusti\\": "src/"
+      "Trusti\\": ""
     }
   },
   "config": {

@@ -1,5 +1,10 @@
 <?php
 
+namespace Trusti\db;
+
+use PDO;
+use PDOException;
+
 class DBConnect {
     public static function conn(){
         try {

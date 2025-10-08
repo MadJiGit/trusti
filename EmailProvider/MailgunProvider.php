@@ -1,5 +1,7 @@
 <?php
 
+namespace Trusti\EmailProvider;
+
 use Mailgun\Mailgun;
 
 class MailgunProvider implements EmailProviderInterface

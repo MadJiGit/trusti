@@ -1,5 +1,7 @@
 <?php
 
+namespace Trusti\EmailProvider;
+
 abstract class AbstractEmailProvider implements EmailProviderInterface
 {
     protected string $api_key;

@@ -1,5 +1,9 @@
 <?php
 
+namespace Trusti\EmailProvider;
+
+use Exception;
+
 class EmailProviderFactory
 {
     public static function create(string $provider): EmailProviderInterface
@@ -18,6 +22,11 @@ class EmailProviderFactory
                 );
             case 'brevo':
                 return new BrevoProvider(
+                    $_ENV['BREVO_API_KEY'],
+                    null
+                );
+            case 'mock':
+                return new MockProvider(
                     $_ENV['BREVO_API_KEY'],
                     null
                 );

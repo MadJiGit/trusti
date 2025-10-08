@@ -1,27 +1,25 @@
 <?php
+namespace Trusti\Service;
 
-$dirname = dirname(__DIR__, 1);
-
-require_once $dirname . '/vendor/autoload.php';
-require_once $dirname . '/db/DBConnect.php';
-require_once $dirname . '/constants/status_code.php';
-require_once $dirname . '/EmailProvider/EmailProviderInterface.php';
-require_once $dirname . '/EmailProvider/AbstractEmailProvider.php';
-require_once $dirname . '/EmailProvider/EmailProviderFactory.php';
-require_once $dirname . '/EmailProvider/MailgunProvider.php';
-require_once $dirname . '/EmailProvider/MailtrapProvider.php';
-require_once $dirname . '/EmailProvider/BrevoProvider.php';
-require_once $dirname . '/Repository/EmailRepository.php';
+use Trusti\EmailProvider\EmailProviderFactory;
+use Trusti\EmailProvider\EmailProviderInterface;
+use Exception;
+use Trusti\Repository\EmailRepository;
 
 class EmailWorker
 {
     private EmailRepository $emailRepository;
     private EmailProviderInterface $emailProvider;
+    private string $logFile;
 
-    public function __construct($provider)
+    public function __construct($provider, StatusCache $statusCache)
     {
-        $this->emailRepository = new EmailRepository();
+        $this->emailRepository = new EmailRepository($statusCache);
         $this->emailProvider = $this->createProvider($provider);
+
+//        $workerPid = getenv('WORKER_ID') ?: 'default';
+        $workerPid = getmypid();
+        $this->logFile = __DIR__ . "/../logs/worker_{$workerPid}.log";
     }
 
     /**
@@ -77,7 +75,10 @@ class EmailWorker
 
     public function prettyPrint($data): void
     {
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL;
+
+//        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL;
+        $output =  json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL;
+        file_put_contents($this->logFile, $output, FILE_APPEND);
     }
 
     public function cleanupProcessing(int $time): void
@@ -107,15 +108,15 @@ class EmailWorker
         self::prettyPrint("Found " . count($sentEmails) . " SENT emails to check delivery status.");
 
         foreach ($sentEmails as $email) {
-            self::prettyPrint("Checking email ID {$email['id']} with message_id: {$email['message_id']}");
+            self::prettyPrint("Checking email ID {$email['id']} with idempotency_key: {$email['idempotency_key']}");
 
-            if ($email['message_id'] === null or $email['message_id'] === ''){
-                self::prettyPrint("Email ID {$email['id']}" .  " REASON: no message_id" );
-                $this->emailRepository->setFailed($email['id'], 'Automatic set failed! No message_id', $result['provider'] ?? null, $result['message_id'] ?? null);
-                break;
+            if (empty($email['idempotency_key'])){
+                self::prettyPrint("Email ID {$email['id']}" .  " REASON: no idempotency_key" );
+                $this->emailRepository->setFailed($email['id'], 'Automatic set failed! No idempotency_key');
+                continue;
             }
 
-            $result = $this->emailProvider->checkDeliveryStatus($email['message_id']);
+            $result = $this->emailProvider->checkDeliveryStatus($email['idempotency_key']);
 
             if (!$result['success']) {
                 self::prettyPrint("API Error for email ID {$email['id']}: " . ($result['error'] ?? 'Unknown error'));

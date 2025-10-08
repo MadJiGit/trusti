@@ -1,5 +1,7 @@
 <?php
 
+namespace Trusti\EmailProvider;
+
 class MailtrapProvider extends AbstractEmailProvider
 {
     private string $inbox_id;

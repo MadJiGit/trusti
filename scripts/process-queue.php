@@ -5,14 +5,22 @@ ini_set('max_execution_time', 0);
 
 $dirname = dirname(__DIR__, 1);
 require_once $dirname . '/vendor/autoload.php';
-require_once $dirname . '/src/EmailWorker.php';
 
 use Dotenv\Dotenv;
+use Trusti\Repository\StatusRepository;
+use Trusti\Service\EmailWorker;
+use Trusti\Service\StatusCache;
 
 $dotenv = Dotenv::createImmutable($dirname);
 $dotenv->load();
 
-$worker = new EmailWorker($_ENV['EMAIL_PROVIDER']);
+$statusCache = new StatusCache((new StatusRepository())->getAllStatuses());
+$worker = new EmailWorker($_ENV['EMAIL_PROVIDER'], $statusCache);
+
+$workerPid = getmypid();
+echo "========================================" . PHP_EOL;
+echo "[Worker PID: $workerPid] STARTED" . PHP_EOL;
+echo "========================================" . PHP_EOL;
 
 $insideSleep = 5;
 $outsideSleep = 5;
@@ -48,7 +56,7 @@ while(true) {
     }
 
     // check delivery status for SENT emails every 2 cycles
-    if($deliveryCheckCounter++ >= 2) {
+    if($deliveryCheckCounter++ >= 5) {
         $worker->prettyPrint("Checking delivery status for SENT emails...");
         $worker->checkDeliveryStatus();
         $deliveryCheckCounter = 0;
@@ -57,9 +65,13 @@ while(true) {
     $emails = $worker->getEmails();
     if($emails === []) {
         $worker->prettyPrint("No emails found in queue.");
+    } else {
+        $emailIds = array_column($emails, 'id');
+        echo "[Worker PID: $workerPid] Fetched " . count($emails) . " emails with IDs: [" . implode(', ', $emailIds) . "]" . PHP_EOL;
     }
 
     foreach ($emails as $email) {
+        echo "[Worker PID: $workerPid] Processing email ID: {$email['id']}" . PHP_EOL;
         $worker->setProcessing($email['id']);
 
         $worker->prettyPrint("Sleeping for $insideSleep seconds INSIDE to check status PROCESSING in DB.");

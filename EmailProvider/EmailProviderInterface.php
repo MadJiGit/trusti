@@ -1,5 +1,7 @@
 <?php
 
+namespace Trusti\EmailProvider;
+
 interface EmailProviderInterface
 {
     public function send(string $to, string $subject, string $body, ?string $from = null, ?string $idempotency_key = null): array;

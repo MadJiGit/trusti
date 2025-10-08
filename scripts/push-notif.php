@@ -1,17 +1,24 @@
 <?php
 $dirname = dirname(__FILE__, 2);
 require_once $dirname . '/vendor/autoload.php';
-require_once $dirname . '/db/DBConnect.php';
-require_once $dirname . '/constants/status_code.php';
-require_once $dirname . '/Repository/EmailRepository.php';
 
 use Ramsey\Uuid\Uuid;
 use Dotenv\Dotenv;
+use Trusti\Repository\EmailRepository;
+use Trusti\Repository\StatusRepository;
+use Trusti\Service\StatusCache;
 
 $dotenv = Dotenv::createImmutable($dirname);
 $dotenv->load();
 
-$emailRepository = new EmailRepository();
+$statusCache = new StatusCache((new StatusRepository())->getAllStatuses());
+$emailRepository = new EmailRepository($statusCache);
+
+echo $argc . PHP_EOL;
+
+//foreach ($argv as $index => $arg) {
+//    echo "Аргумент $index: $arg\n";
+//}
 
 if($argc != 4) {
     echo 'Usage: php push-email.php <email> <subject> <body>' . PHP_EOL;
